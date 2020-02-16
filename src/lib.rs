@@ -342,16 +342,16 @@ impl JIT {
             .map(|string| std::ffi::CString::new(string).unwrap())
             .collect::<Vec<_>>();
         // CString should be alive if we want to pass it's pointer to another function properly, otherwise this may lead to memory leak or UB.
-        let pointer = vec_args
+        let vec_ptr = vec_args
             .iter()
-            .map(|cstr| cstr.as_ptr() as *const u8)
-            .collect::<Vec<_>>()
-            .as_ptr() as *const *const u8;
+            .map(|cstr| cstr.as_ptr())
+            .collect::<Vec<_>>();
+        let argv = vec_ptr.as_ptr();
         assert_ne!(main, std::ptr::null());
         // this transmute is safe: this function is finalized(`self.finalize()`) and **guaranteed** to be non-null
-        let main: unsafe extern "C" fn(i32, *const *const u8) -> i32 = std::mem::transmute(main);
+        let main: unsafe extern "C" fn(i32, *const *const i8) -> i32 = std::mem::transmute(main);
         // through transmute is safe,invoking this function is unsafe because we invoke C code.
-        Some(main(argc, pointer))
+        Some(main(argc, argv))
     }
 }
 

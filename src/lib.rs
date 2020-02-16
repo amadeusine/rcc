@@ -336,7 +336,7 @@ impl JIT {
     pub unsafe fn run_main(&mut self) -> Option<i32> {
         self.finalize();
         let main = self.get_compiled_function("main")?;
-        let args = std::env::args().skip(1);
+        let args = std::env::args(); //.skip(1);
         let argc = args.len() as i32;
         let vec_args = args
             .map(|string| std::ffi::CString::new(string).unwrap())
@@ -348,7 +348,7 @@ impl JIT {
             .collect::<Vec<_>>();
         let argv = vec_ptr.as_ptr();
         assert_ne!(main, std::ptr::null());
-        // this transmute is safe: this function is finalized(`self.finalize()`) and **guaranteed** to be non-null
+        // this transmute is safe: this function is finalized (`self.finalize()`) and non-null
         let main: unsafe extern "C" fn(i32, *const *const i8) -> i32 = std::mem::transmute(main);
         // through transmute is safe,invoking this function is unsafe because we invoke C code.
         Some(main(argc, argv))

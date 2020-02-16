@@ -69,6 +69,12 @@ pub fn run(program: &Path, args: &[&str]) -> Result<Output, std::io::Error> {
     Command::new(program).args(args).output()
 }
 
+// Given a valid program, run it in the current process memory
+unsafe fn jit(program: &str) -> Option<i32> {
+    let (module, _) = rcc::JIT::from_string(program, &rcc::Opt::default());
+    module.unwrap().run_main()
+}
+
 pub fn assert_compiles(program: &str) {
     assert!(
         compile(program, true).is_err(),
@@ -142,6 +148,8 @@ pub fn assert_succeeds(program: &str) {
         "'{}' should exit successfully",
         program
     );
+    // then, run jit
+    unsafe { assert_eq!(jit(program).unwrap(), 0) }
 }
 
 pub fn assert_code(program: &str, code: i32) {
@@ -157,6 +165,8 @@ pub fn assert_code(program: &str, code: i32) {
         program,
         code
     );
+    // run jit
+    unsafe { assert_eq!(jit(program).unwrap(), code) }
 }
 
 pub fn assert_num_errs<S: AsRef<str>>(program: S, n: usize) {
